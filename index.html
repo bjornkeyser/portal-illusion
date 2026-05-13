@@ -156,6 +156,58 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ─── SIZE SLIDER (bottom, during noise) ───────────── */
+  #size-control {
+    position: fixed;
+    bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 14px;
+    background: #000;
+    color: #fff;
+    padding: 7px 14px;
+    font-size: 13px;
+    z-index: 20;
+    touch-action: auto;
+  }
+  body.running #size-control { display: flex; }
+
+  #size-control label {
+    font-variant-numeric: tabular-nums;
+    min-width: 56px;
+    user-select: none;
+  }
+  #size-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 180px;
+    height: 22px;
+    background: transparent;
+    cursor: pointer;
+    touch-action: auto;
+  }
+  #size-slider::-webkit-slider-runnable-track {
+    height: 2px; background: #fff;
+  }
+  #size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px; width: 18px;
+    border-radius: 50%;
+    background: #fff;
+    margin-top: -8px;
+  }
+  #size-slider::-moz-range-track {
+    height: 2px; background: #fff;
+  }
+  #size-slider::-moz-range-thumb {
+    height: 18px; width: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+  }
+
   /* RESPONSE OPTIONS */
   .question {
     width: 100%;
@@ -179,8 +231,15 @@
     font-size: 15px;
     line-height: 1.35;
     cursor: pointer;
+    transition: background 0.08s, color 0.08s, border-color 0.08s;
   }
   .choice:active { background: #f0f0f0; border-color: #000; }
+  .choice.selected {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+  }
+  .choice:disabled { cursor: default; }
 
   .other {
     margin-top: 22px;
@@ -217,11 +276,53 @@
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
+    transition: background 0.08s;
   }
   .submit-other:disabled { background: #bbb; border-color: #bbb; cursor: default; }
+  .submit-other.selected { background: #555; }
+
+  /* ─── PORTRAIT BLOCKER ───────────────────────────────── */
+  #rotate-prompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 100;
+    text-align: center;
+    padding: 30px;
+  }
+  #rotate-prompt .rot-icon {
+    font-size: 72px;
+    margin-bottom: 20px;
+    color: #000;
+    animation: rot-hint 2.4s ease-in-out infinite;
+    display: inline-block;
+  }
+  @keyframes rot-hint {
+    0%, 30%, 100% { transform: rotate(0deg); }
+    50%, 80%      { transform: rotate(90deg); }
+  }
+  #rotate-prompt p {
+    font-size: 18px;
+    color: #000;
+    margin: 0;
+  }
+
+  @media (orientation: portrait) {
+    #rotate-prompt { display: flex; }
+    .screen, canvas, #task-overlay, .progress, #size-control { display: none !important; }
+  }
 </style>
 </head>
 <body>
+
+<div id="rotate-prompt">
+  <div class="rot-icon">▭</div>
+  <p>Please rotate your phone</p>
+</div>
 
 <div class="progress" id="progress"></div>
 
@@ -249,6 +350,10 @@
 <div id="task-overlay">
   <div class="task-label"><span class="progress-inline" id="ovl-progress"></span><span id="ovl-instruction"></span></div>
   <button class="done-btn" data-action="finish-task">Done</button>
+</div>
+<div id="size-control">
+  <label for="size-slider">size <span id="size-val">6</span></label>
+  <input type="range" id="size-slider" min="1" max="30" step="1" value="6">
 </div>
 
 <!-- RESPONSE -->
@@ -280,13 +385,13 @@
 <script>
 (function() {
   // ─── CONFIG ─────────────────────────────────────────────
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJGxgV5RhMEja6ijQ2pwQRsvLZbCOFTVklXNgZbxV27pdAjMkKCOxBP_XHFBS1Aq9q/exec";
+  const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
 
   const params = new URLSearchParams(location.search);
-  const cellSize = Math.max(1, parseInt(params.get('cell')) || 6);
+  let cellSize = Math.max(1, parseInt(params.get('cell')) || 6);
   const targetFPS = Math.max(1, Math.min(120, parseInt(params.get('fps')) || 60));
   const density = Math.max(0, Math.min(1, parseFloat(params.get('p')) || 0.5));
-  const minSeconds = Math.max(0, parseInt(params.get('min') ?? '10'));
+  const minSeconds = Math.max(0, parseInt(params.get('min') ?? '5'));
 
   // ─── CONDITIONS ─────────────────────────────────────────
   const CONDITIONS = [
@@ -508,7 +613,23 @@
     showScreen('response');
   }
 
-  async function submit(responseKey, otherText) {
+  let submitting = false;
+
+  function submit(responseKey, otherText) {
+    if (submitting) return;        // ignore re-clicks
+    submitting = true;
+
+    // Visual feedback + lock all inputs immediately
+    document.querySelectorAll('.choice').forEach(b => {
+      if (b.dataset.response === responseKey) b.classList.add('selected');
+      b.disabled = true;
+    });
+    const subBtn = document.getElementById('submit-other');
+    const txtIn = document.getElementById('resp-other');
+    if (responseKey === 'other') subBtn.classList.add('selected');
+    subBtn.disabled = true;
+    txtIn.disabled = true;
+
     const c = order[currentIdx];
     const payload = {
       session: sessionId,
@@ -517,20 +638,28 @@
       response: responseKey,
       text: otherText || '',
     };
+
+    // Fire and forget — no await, keepalive so request survives the screen change
     if (SCRIPT_URL && SCRIPT_URL.indexOf('PASTE_YOUR') < 0) {
       try {
-        await fetch(SCRIPT_URL, {
+        fetch(SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
+          keepalive: true,
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload),
-        });
-      } catch (e) { console.error('submit failed', e); }
+        }).catch(e => console.error('submit failed', e));
+      } catch (e) { console.error('submit threw', e); }
     } else {
       console.warn('No SCRIPT_URL set — response not sent:', payload);
     }
-    currentIdx++;
-    nextCondition();
+
+    // Brief feedback delay so the user sees the selected state, then advance
+    setTimeout(() => {
+      submitting = false;
+      currentIdx++;
+      nextCondition();
+    }, 200);
   }
 
   function finishAll() {
@@ -566,6 +695,18 @@
   // enable Submit button only when text input has content
   document.getElementById('resp-other').addEventListener('input', e => {
     document.getElementById('submit-other').disabled = !e.target.value.trim();
+  });
+
+  // ─── SIZE SLIDER ───────────────────────────────────────
+  const sizeSlider = document.getElementById('size-slider');
+  const sizeVal = document.getElementById('size-val');
+  sizeSlider.value = cellSize;
+  sizeVal.textContent = cellSize;
+  sizeSlider.addEventListener('input', e => {
+    const v = Math.max(1, parseInt(e.target.value) || 1);
+    cellSize = v;
+    sizeVal.textContent = v;
+    if (running) resize();
   });
 
   window.addEventListener('resize', resize);
