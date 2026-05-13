@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Noise</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas {
+    display: block;
+    width: 100vw; height: 100vh;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function() {
+  const c = document.getElementById('c');
+  const ctx = c.getContext('2d');
+  const cellSize = Math.max(1, parseInt(new URLSearchParams(location.search).get('cell')) || 6);
+
+  const small = document.createElement('canvas');
+  const sctx = small.getContext('2d');
+  let imgData;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    c.width = Math.floor(innerWidth * dpr);
+    c.height = Math.floor(innerHeight * dpr);
+    c.style.width = innerWidth + 'px';
+    c.style.height = innerHeight + 'px';
+    small.width = Math.max(1, Math.ceil(c.width / cellSize));
+    small.height = Math.max(1, Math.ceil(c.height / cellSize));
+    ctx.imageSmoothingEnabled = false;
+    imgData = sctx.createImageData(small.width, small.height);
+    const d = imgData.data;
+    for (let i = 3; i < d.length; i += 4) d[i] = 255;
+  }
+
+  function frame() {
+    const d = imgData.data;
+    const len = small.width * small.height;
+    for (let i = 0; i < len; i++) {
+      const v = Math.random() < 0.5 ? 0 : 255;
+      const o = i * 4;
+      d[o] = v; d[o+1] = v; d[o+2] = v;
+    }
+    sctx.putImageData(imgData, 0, 0);
+    ctx.drawImage(small, 0, 0, c.width, c.height);
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+
+  // try to keep screen awake; silent if unsupported or not allowed
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(() => {});
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
