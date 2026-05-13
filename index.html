@@ -3,17 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
-<title>Noise</title>
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Portal illusion task</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%; height: 100%;
-    background: #000;
+    background: #fff;
+    color: #000;
     overflow: hidden;
-    touch-action: none;
-    -webkit-user-select: none; user-select: none;
+    overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
   }
   canvas {
     display: block;
@@ -21,57 +27,556 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
+
+  .screen {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    padding: 28px 22px;
+    z-index: 10;
+    overflow-y: auto;
+  }
+  .screen.active { display: flex; }
+  .screen-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  p {
+    color: #333;
+    margin-bottom: 24px;
+    max-width: 380px;
+  }
+  em {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .btn {
+    background: #000;
+    color: #fff;
+    border: 1px solid #000;
+    padding: 13px 28px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .btn:active { background: #333; }
+  .btn:disabled { background: #bbb; border-color: #bbb; cursor: default; }
+  .btn.secondary {
+    background: #fff;
+    color: #000;
+    border: 1px solid #888;
+  }
+  .btn.secondary:active { background: #f0f0f0; }
+
+  .progress {
+    position: fixed;
+    top: max(env(safe-area-inset-top, 0px), 14px);
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    z-index: 30;
+    pointer-events: none;
+  }
+  body:not(.has-progress) .progress { display: none; }
+
+  /* INSTRUCTION SCREEN */
+  .icon {
+    font-size: 88px;
+    line-height: 1;
+    color: #000;
+    margin-bottom: 22px;
+    font-weight: 200;
+  }
+  .icon-rotate { animation: spin 3s linear infinite; display: inline-block; }
+  .icon-horz   { animation: slide-h 2s ease-in-out infinite; display: inline-block; }
+  .icon-vert   { animation: slide-v 2s ease-in-out infinite; display: inline-block; }
+  .icon-depth  { animation: pulse 2s ease-in-out infinite; display: inline-block; }
+  @keyframes spin    { 0% { transform: rotate(-25deg); } 50% { transform: rotate(25deg); } 100% { transform: rotate(-25deg); } }
+  @keyframes slide-h { 0%, 100% { transform: translateX(-18px); } 50% { transform: translateX(18px); } }
+  @keyframes slide-v { 0%, 100% { transform: translateY(-14px); } 50% { transform: translateY(14px); } }
+  @keyframes pulse   { 0%, 100% { transform: scale(0.85); } 50% { transform: scale(1.15); } }
+
+  /* NOISE-RUNNING UI */
+  #task-overlay {
+    position: fixed;
+    top: max(env(safe-area-inset-top, 0px), 10px);
+    left: 10px; right: 10px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 20;
+  }
+  body.running #task-overlay { display: flex; }
+
+  .task-label {
+    background: #000;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .task-label .progress-inline { color: #888; margin-right: 8px; }
+
+  .done-btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    min-width: 60px;
+    text-align: center;
+  }
+  .done-btn:active:not(:disabled) { background: #333; }
+  .done-btn:disabled {
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+    cursor: default;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* RESPONSE OPTIONS */
+  .question {
+    width: 100%;
+    max-width: 420px;
+  }
+  .question-title {
+    margin-bottom: 18px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .choice {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #888;
+    padding: 14px 14px;
+    margin-bottom: 8px;
+    color: #000;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.35;
+    cursor: pointer;
+  }
+  .choice:active { background: #f0f0f0; border-color: #000; }
+
+  .other {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #ddd;
+  }
+  .other label {
+    display: block;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .other-row {
+    display: flex;
+    gap: 8px;
+  }
+  .other input[type="text"] {
+    flex: 1;
+    border: 1px solid #888;
+    padding: 12px 12px;
+    font-family: inherit;
+    font-size: 15px;
+    background: #fff;
+    color: #000;
+    min-width: 0;
+  }
+  .other input[type="text"]:focus { outline: none; border-color: #000; }
+  .submit-other {
+    background: #000;
+    color: #fff;
+    border: 1px solid #000;
+    padding: 0 18px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .submit-other:disabled { background: #bbb; border-color: #bbb; cursor: default; }
 </style>
 </head>
 <body>
+
+<div class="progress" id="progress"></div>
+
+<!-- INTRO -->
+<div id="intro" class="screen active">
+  <div class="screen-center">
+    <h1>Portal illusion: percept task</h1>
+    <p>You will be asked to perform four short motion tasks with your phone. For each, indicate what you saw.</p>
+    <button class="btn" data-action="begin">Begin</button>
+  </div>
+</div>
+
+<!-- INSTRUCTION -->
+<div id="instruction" class="screen">
+  <div class="screen-center">
+    <div class="icon" id="ins-icon"></div>
+    <h2 id="ins-title"></h2>
+    <p id="ins-desc"></p>
+    <button class="btn" data-action="start-task">Start</button>
+  </div>
+</div>
+
+<!-- NOISE -->
 <canvas id="c"></canvas>
+<div id="task-overlay">
+  <div class="task-label"><span class="progress-inline" id="ovl-progress"></span><span id="ovl-instruction"></span></div>
+  <button class="done-btn" data-action="finish-task">Done</button>
+</div>
+
+<!-- RESPONSE -->
+<div id="response" class="screen">
+  <div class="screen-center">
+    <div class="question">
+      <div class="question-title" id="resp-title"></div>
+      <div id="resp-choices"></div>
+      <div class="other">
+        <label for="resp-other">Or, something else:</label>
+        <div class="other-row">
+          <input type="text" id="resp-other" placeholder="describe what you saw" autocomplete="off" autocapitalize="sentences">
+          <button class="submit-other" id="submit-other" disabled>Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THANKS -->
+<div id="thanks" class="screen">
+  <div class="screen-center">
+    <h1>Thank you.</h1>
+    <p>Your responses were recorded. You may pass the phone to the next person, or try again.</p>
+    <button class="btn secondary" data-action="restart">Try again</button>
+  </div>
+</div>
+
 <script>
 (function() {
-  const c = document.getElementById('c');
-  const ctx = c.getContext('2d');
-  const cellSize = Math.max(1, parseInt(new URLSearchParams(location.search).get('cell')) || 6);
+  // ─── CONFIG ─────────────────────────────────────────────
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzJGxgV5RhMEja6ijQ2pwQRsvLZbCOFTVklXNgZbxV27pdAjMkKCOxBP_XHFBS1Aq9q/exec";
 
+  const params = new URLSearchParams(location.search);
+  const cellSize = Math.max(1, parseInt(params.get('cell')) || 6);
+  const targetFPS = Math.max(1, Math.min(120, parseInt(params.get('fps')) || 60));
+  const density = Math.max(0, Math.min(1, parseFloat(params.get('p')) || 0.5));
+  const minSeconds = Math.max(0, parseInt(params.get('min') ?? '10'));
+
+  // ─── CONDITIONS ─────────────────────────────────────────
+  const CONDITIONS = [
+    {
+      key: 'horizontal',
+      icon: '↔', iconClass: 'icon-horz',
+      title: 'Move side to side',
+      desc: 'Hold your phone in front of you and move it slowly left and right.',
+      shortInstruction: 'Move side to side',
+      question: 'What did the pattern do while you moved <em>side to side</em>?',
+      options: [
+        { key: 'opposite',   text: 'It moved opposite to my phone' },
+        { key: 'further',    text: 'It moved with my phone, but <em>further</em>' },
+        { key: 'with_phone', text: 'It moved with my phone' },
+        { key: 'nothing',    text: "Wasn't sure / didn't notice anything" },
+      ],
+    },
+    {
+      key: 'vertical',
+      icon: '↕', iconClass: 'icon-vert',
+      title: 'Move up and down',
+      desc: 'Hold your phone in front of you and move it slowly up and down.',
+      shortInstruction: 'Move up and down',
+      question: 'What did the pattern do while you moved <em>up and down</em>?',
+      options: [
+        { key: 'opposite',   text: 'It moved opposite to my phone' },
+        { key: 'further',    text: 'It moved with my phone, but <em>further</em>' },
+        { key: 'with_phone', text: 'It moved with my phone' },
+        { key: 'nothing',    text: "Wasn't sure / didn't notice anything" },
+      ],
+    },
+    {
+      key: 'rotation',
+      icon: '↻', iconClass: 'icon-rotate',
+      title: 'Rotate the phone',
+      desc: 'Hold your phone flat in front of you and slowly rotate it back and forth.',
+      shortInstruction: 'Rotate the phone',
+      question: 'What did the pattern do while you <em>rotated</em>?',
+      options: [
+        { key: 'opposite',   text: 'It rotated opposite to my phone' },
+        { key: 'further',    text: 'It rotated with my phone, but <em>further</em>' },
+        { key: 'with_phone', text: 'It rotated with my phone' },
+        { key: 'nothing',    text: "Wasn't sure / didn't notice anything" },
+      ],
+    },
+    {
+      key: 'depth',
+      icon: '⤢', iconClass: 'icon-depth',
+      title: 'Move closer and farther',
+      desc: 'Hold your phone and slowly bring it closer and farther from your face.',
+      shortInstruction: 'Move closer and farther',
+      question: 'What did the pattern do while you moved <em>closer and farther</em>?',
+      options: [
+        { key: 'opposite',   text: 'It moved opposite to my phone' },
+        { key: 'further',    text: 'It moved with my phone, but <em>further</em>' },
+        { key: 'with_phone', text: 'It moved with my phone' },
+        { key: 'nothing',    text: "Wasn't sure / didn't notice anything" },
+      ],
+    },
+  ];
+
+  // ─── STATE ──────────────────────────────────────────────
+  let order = [];
+  let currentIdx = 0;
+  const sessionId = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // ─── NOISE ──────────────────────────────────────────────
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let running = false;
+  let wakeLock = null;
   const small = document.createElement('canvas');
-  const sctx = small.getContext('2d');
+  const smallCtx = small.getContext('2d');
   let imgData;
 
   function resize() {
     const dpr = window.devicePixelRatio || 1;
-    c.width = Math.floor(innerWidth * dpr);
-    c.height = Math.floor(innerHeight * dpr);
-    c.style.width = innerWidth + 'px';
-    c.style.height = innerHeight + 'px';
-    small.width = Math.max(1, Math.ceil(c.width / cellSize));
-    small.height = Math.max(1, Math.ceil(c.height / cellSize));
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    small.width = Math.max(1, Math.ceil(canvas.width / cellSize));
+    small.height = Math.max(1, Math.ceil(canvas.height / cellSize));
     ctx.imageSmoothingEnabled = false;
-    imgData = sctx.createImageData(small.width, small.height);
+    imgData = smallCtx.createImageData(small.width, small.height);
     const d = imgData.data;
     for (let i = 3; i < d.length; i += 4) d[i] = 255;
   }
 
-  function frame() {
-    const d = imgData.data;
+  function generate() {
+    const data = imgData.data;
     const len = small.width * small.height;
     for (let i = 0; i < len; i++) {
-      const v = Math.random() < 0.5 ? 0 : 255;
+      const v = Math.random() < density ? 255 : 0;
       const o = i * 4;
-      d[o] = v; d[o+1] = v; d[o+2] = v;
+      data[o] = v; data[o+1] = v; data[o+2] = v;
     }
-    sctx.putImageData(imgData, 0, 0);
-    ctx.drawImage(small, 0, 0, c.width, c.height);
-    requestAnimationFrame(frame);
+    smallCtx.putImageData(imgData, 0, 0);
+    ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
   }
 
-  resize();
+  let lastT = 0;
+  const interval = 1000 / targetFPS;
+  function loop(t) {
+    if (!running) return;
+    if (t - lastT >= interval - 1) { generate(); lastT = t; }
+    requestAnimationFrame(loop);
+  }
+
+  // ─── SCREEN MGMT ───────────────────────────────────────
+  const screens = {
+    intro:       document.getElementById('intro'),
+    instruction: document.getElementById('instruction'),
+    response:    document.getElementById('response'),
+    thanks:      document.getElementById('thanks'),
+  };
+  function showScreen(name) {
+    for (const k in screens) screens[k].classList.toggle('active', k === name);
+  }
+
+  function updateProgress() {
+    const el = document.getElementById('progress');
+    const ovl = document.getElementById('ovl-progress');
+    if (currentIdx >= 0 && currentIdx < order.length) {
+      const text = (currentIdx + 1) + ' / ' + order.length;
+      el.textContent = text;
+      ovl.textContent = text;
+      document.body.classList.add('has-progress');
+    } else {
+      document.body.classList.remove('has-progress');
+    }
+  }
+
+  // ─── FLOW ──────────────────────────────────────────────
+  function begin() {
+    order = shuffle(CONDITIONS);
+    currentIdx = 0;
+    nextCondition();
+  }
+
+  function nextCondition() {
+    if (currentIdx >= order.length) { finishAll(); return; }
+    updateProgress();
+    const c = order[currentIdx];
+    document.getElementById('ins-icon').innerHTML =
+      '<span class="' + c.iconClass + '">' + c.icon + '</span>';
+    document.getElementById('ins-title').textContent = c.title;
+    document.getElementById('ins-desc').textContent = c.desc;
+    document.getElementById('ovl-instruction').textContent = c.shortInstruction;
+    showScreen('instruction');
+  }
+
+  let exposureTimer = null;
+
+  async function startTask() {
+    showScreen(null);
+    document.body.classList.add('running');
+    resize();
+    running = true;
+
+    const btn = document.querySelector('.done-btn');
+    if (minSeconds > 0) {
+      btn.disabled = true;
+      btn.textContent = minSeconds + 's';
+      const startedAt = Date.now();
+      exposureTimer = setInterval(() => {
+        const elapsed = (Date.now() - startedAt) / 1000;
+        const remaining = minSeconds - elapsed;
+        if (remaining > 0) {
+          btn.textContent = Math.ceil(remaining) + 's';
+        } else {
+          btn.textContent = 'Done';
+          btn.disabled = false;
+          clearInterval(exposureTimer);
+          exposureTimer = null;
+        }
+      }, 200);
+    } else {
+      btn.textContent = 'Done';
+      btn.disabled = false;
+    }
+
+    try {
+      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+    } catch (e) {}
+    requestAnimationFrame(loop);
+  }
+
+  function finishTask() {
+    if (exposureTimer) { clearInterval(exposureTimer); exposureTimer = null; }
+    running = false;
+    document.body.classList.remove('running');
+    const c = order[currentIdx];
+    document.getElementById('resp-title').innerHTML = c.question;
+    const wrap = document.getElementById('resp-choices');
+    wrap.innerHTML = '';
+    c.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = opt.text;
+      btn.dataset.response = opt.key;
+      wrap.appendChild(btn);
+    });
+    // reset text input
+    const txt = document.getElementById('resp-other');
+    txt.value = '';
+    document.getElementById('submit-other').disabled = true;
+    showScreen('response');
+  }
+
+  async function submit(responseKey, otherText) {
+    const c = order[currentIdx];
+    const payload = {
+      session: sessionId,
+      ts: new Date().toISOString(),
+      condition: c.key,
+      response: responseKey,
+      text: otherText || '',
+    };
+    if (SCRIPT_URL && SCRIPT_URL.indexOf('PASTE_YOUR') < 0) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+        });
+      } catch (e) { console.error('submit failed', e); }
+    } else {
+      console.warn('No SCRIPT_URL set — response not sent:', payload);
+    }
+    currentIdx++;
+    nextCondition();
+  }
+
+  function finishAll() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    currentIdx = -1;
+    updateProgress();
+    showScreen('thanks');
+  }
+
+  function restart() {
+    showScreen('intro');
+    currentIdx = -1;
+    updateProgress();
+  }
+
+  // ─── EVENTS ────────────────────────────────────────────
+  document.addEventListener('click', e => {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'begin')            begin();
+    else if (action === 'start-task')  startTask();
+    else if (action === 'finish-task') finishTask();
+    else if (action === 'restart')     restart();
+
+    const choice = e.target.closest('.choice');
+    if (choice) submit(choice.dataset.response);
+
+    if (e.target.id === 'submit-other') {
+      const txt = document.getElementById('resp-other').value.trim();
+      if (txt) submit('other', txt);
+    }
+  });
+
+  // enable Submit button only when text input has content
+  document.getElementById('resp-other').addEventListener('input', e => {
+    document.getElementById('submit-other').disabled = !e.target.value.trim();
+  });
+
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && running && !wakeLock) {
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    }
+  });
 
-  // try to keep screen awake; silent if unsupported or not allowed
-  if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').catch(() => {});
-  }
-
-  requestAnimationFrame(frame);
+  resize();
 })();
 </script>
 </body>
