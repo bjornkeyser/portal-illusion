@@ -100,6 +100,38 @@
     font-weight: 500;
   }
 
+  /* Preview list shown on instruction screen */
+  .preview {
+    max-width: 340px;
+    text-align: left;
+    margin: 0 auto 24px;
+    font-size: 14px;
+    color: #555;
+  }
+  .preview p { margin-bottom: 6px; max-width: none; }
+  .preview ul {
+    list-style: disc;
+    padding-left: 22px;
+    margin: 0;
+  }
+  .preview li { margin-bottom: 3px; line-height: 1.35; }
+  .preview em { color: #000; }
+
+  /* Back-to-stimulus button on response screen */
+  .back-btn {
+    background: transparent;
+    border: none;
+    color: #555;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 4px;
+    text-decoration: underline;
+    align-self: center;
+    margin-bottom: 14px;
+  }
+  .back-btn:active { color: #000; }
+
   .btn {
     background: #000;
     color: #fff;
@@ -119,17 +151,139 @@
   }
   .btn.secondary:active { background: #f0f0f0; }
 
-  .progress {
-    position: fixed;
-    top: max(env(safe-area-inset-top, 0px), 14px);
-    left: 0; right: 0;
-    text-align: center;
-    font-size: 12px;
-    color: #888;
-    z-index: 30;
-    pointer-events: none;
+  .progress { display: none; }  /* deprecated — menu is the home */
+
+  /* ─── MENU ──────────────────────────────────────────── */
+  .menu-intro {
+    font-size: 14px !important;
+    color: #555;
+    max-width: 380px;
+    margin-bottom: 18px !important;
   }
-  body:not(.has-progress) .progress { display: none; }
+  .menu-intro em { color: #000; }
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 16px;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #888;
+    font-family: inherit;
+    font-size: 16px;
+    color: #000;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.08s, border-color 0.08s;
+  }
+  .menu-item:active { background: #f0f0f0; }
+  .menu-item.completed {
+    border-color: #16a34a;
+    background: #f3fbf5;
+  }
+  .menu-item.menu-sandbox {
+    margin-top: 8px;
+    border-style: dashed;
+  }
+  .menu-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .menu-icon .phone-shape.landscape { width: 48px; height: 30px; border-width: 2.5px; }
+  .menu-icon .phone-shape.portrait  { width: 30px; height: 48px; border-width: 2.5px; }
+  .menu-title {
+    flex: 1;
+    font-weight: 500;
+  }
+  .menu-check {
+    width: 22px;
+    flex-shrink: 0;
+    font-size: 18px;
+    color: #16a34a;
+    font-weight: 700;
+    text-align: center;
+  }
+  .menu-reset {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-family: inherit;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px;
+    margin-top: 4px;
+  }
+  .menu-reset:active { color: #000; }
+
+  /* ─── SANDBOX-MODE CONTROLS ─────────────────────────── */
+  #fps-control {
+    position: fixed;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 46px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 14px;
+    background: #000;
+    color: #fff;
+    padding: 7px 14px;
+    font-size: 13px;
+    z-index: 20;
+    touch-action: auto;
+  }
+  body.sandbox-mode #fps-control { display: flex; }
+  #fps-control label { font-variant-numeric: tabular-nums; min-width: 62px; user-select: none; }
+  #fps-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 180px; height: 22px;
+    background: transparent; cursor: pointer;
+    touch-action: auto;
+  }
+  #fps-slider::-webkit-slider-runnable-track { height: 2px; background: #fff; }
+  #fps-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px; width: 18px; border-radius: 50%;
+    background: #fff; margin-top: -8px;
+  }
+  #fps-slider::-moz-range-track { height: 2px; background: #fff; }
+  #fps-slider::-moz-range-thumb {
+    height: 18px; width: 18px; border-radius: 50%;
+    background: #fff; border: none;
+  }
+
+  #sandbox-exit {
+    position: fixed;
+    top: max(env(safe-area-inset-top, 0px), 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    z-index: 20;
+  }
+  body.sandbox-mode #sandbox-exit { display: block; }
+  body.sandbox-mode #task-overlay { display: none !important; }
+  .exit-btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .exit-btn:active { background: #333; }
 
   /* INSTRUCTION SCREEN */
   .icon {
@@ -159,10 +313,12 @@
   #task-overlay {
     position: fixed;
     top: max(env(safe-area-inset-top, 0px), 10px);
-    left: 10px; right: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     display: none;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     z-index: 20;
   }
   body.running #task-overlay { display: flex; }
@@ -170,11 +326,12 @@
   .task-label {
     background: #000;
     color: #fff;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 5px 11px;
+    font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
   }
-  .task-label .progress-inline { color: #888; margin-right: 8px; }
+  .task-label .progress-inline { color: #888; margin-right: 6px; }
 
   .done-btn {
     background: #16a34a;
@@ -339,14 +496,14 @@
 <canvas id="c"></canvas>
 
 <div id="ui-container">
-<div class="progress" id="progress"></div>
 
-<!-- INTRO -->
-<div id="intro" class="screen active">
+<!-- MENU (home) -->
+<div id="menu" class="screen active">
   <div class="screen-center">
-    <h1>Portal illusion: percept task</h1>
-    <p>You will be asked to perform four short motion tasks with your phone. Each task will tell you which orientation to hold the phone in. If your phone doesn't rotate freely, disable rotation lock first.</p>
-    <button class="btn" data-action="begin">Begin</button>
+    <h1>Portal illusion</h1>
+    <p class="menu-intro">Tap a motion to try it. Tap again to redo. <em>Free explore</em> shows the noise with no task.</p>
+    <div class="menu-list" id="menu-list"></div>
+    <button class="menu-reset" data-action="reset-progress">Reset progress</button>
   </div>
 </div>
 
@@ -356,24 +513,34 @@
     <div class="icon" id="ins-icon"></div>
     <h2 id="ins-title"></h2>
     <p id="ins-desc"></p>
+    <div class="preview" id="ins-preview"></div>
     <button class="btn" data-action="start-task">Start</button>
+    <button class="back-btn" data-action="return-menu" style="margin-top:8px;">← Back to menu</button>
   </div>
 </div>
 
 <!-- NOISE OVERLAY (canvas itself is above, outside this container) -->
 <div id="task-overlay">
-  <div class="task-label"><span class="progress-inline" id="ovl-progress"></span><span id="ovl-instruction"></span></div>
   <button class="done-btn" data-action="finish-task">Done</button>
+  <div class="task-label" id="ovl-instruction"></div>
 </div>
 <div id="size-control">
   <label for="size-slider">size <span id="size-val">6</span></label>
   <input type="range" id="size-slider" min="1" max="30" step="1" value="6">
+</div>
+<div id="fps-control">
+  <label for="fps-slider">speed <span id="fps-val">60</span></label>
+  <input type="range" id="fps-slider" min="1" max="60" step="1" value="60">
+</div>
+<div id="sandbox-exit">
+  <button class="exit-btn" data-action="exit-sandbox">Exit</button>
 </div>
 
 <!-- RESPONSE -->
 <div id="response" class="screen">
   <div class="screen-center">
     <div class="question">
+      <button class="back-btn" data-action="back-to-stimulus">← Watch the pattern again</button>
       <div class="question-title" id="resp-title"></div>
       <div id="resp-choices"></div>
       <div class="other">
@@ -387,15 +554,6 @@
   </div>
 </div>
 
-<!-- THANKS -->
-<div id="thanks" class="screen">
-  <div class="screen-center">
-    <h1>Thank you.</h1>
-    <p>Your responses were recorded. You may pass the phone to the next person, or try again.</p>
-    <button class="btn secondary" data-action="restart">Try again</button>
-  </div>
-</div>
-
 </div><!-- /ui-container -->
 
 <script>
@@ -405,7 +563,7 @@
 
   const params = new URLSearchParams(location.search);
   let cellSize = Math.max(1, parseInt(params.get('cell')) || 6);
-  const targetFPS = Math.max(1, Math.min(120, parseInt(params.get('fps')) || 60));
+  let targetFPS = Math.max(1, Math.min(120, parseInt(params.get('fps')) || 60));
   const density = Math.max(0, Math.min(1, parseFloat(params.get('p')) || 0.5));
   const minSeconds = Math.max(0, parseInt(params.get('min') ?? '5'));
 
@@ -470,20 +628,11 @@
   ];
 
   // ─── STATE ──────────────────────────────────────────────
-  let order = [];
-  let currentIdx = 0;
+  const completed = { horizontal: false, vertical: false, rotation: false, depth: false };
+  let currentTask = null;
   const sessionId = (window.crypto && crypto.randomUUID)
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
 
   // ─── NOISE ──────────────────────────────────────────────
   const canvas = document.getElementById('c');
@@ -521,70 +670,110 @@
   }
 
   let lastT = 0;
-  const interval = 1000 / targetFPS;
   function loop(t) {
     if (!running) return;
+    const interval = 1000 / targetFPS;
     if (t - lastT >= interval - 1) { generate(); lastT = t; }
     requestAnimationFrame(loop);
   }
 
   // ─── SCREEN MGMT ───────────────────────────────────────
   const screens = {
-    intro:       document.getElementById('intro'),
+    menu:        document.getElementById('menu'),
     instruction: document.getElementById('instruction'),
     response:    document.getElementById('response'),
-    thanks:      document.getElementById('thanks'),
   };
   function showScreen(name) {
     for (const k in screens) screens[k].classList.toggle('active', k === name);
   }
 
-  function updateProgress() {
-    const el = document.getElementById('progress');
-    const ovl = document.getElementById('ovl-progress');
-    if (currentIdx >= 0 && currentIdx < order.length) {
-      const text = (currentIdx + 1) + ' / ' + order.length;
-      el.textContent = text;
-      ovl.textContent = text;
-      document.body.classList.add('has-progress');
-    } else {
-      document.body.classList.remove('has-progress');
-    }
+  // ─── MENU ──────────────────────────────────────────────
+  function renderMenu() {
+    const list = document.getElementById('menu-list');
+    list.innerHTML = '';
+    CONDITIONS.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'menu-item' + (completed[c.key] ? ' completed' : '');
+      btn.dataset.task = c.key;
+      btn.innerHTML =
+        '<div class="menu-icon">' +
+          '<div class="phone-shape ' + c.orient + ' ' + c.iconClass + '"></div>' +
+        '</div>' +
+        '<div class="menu-title">' + c.title + '</div>' +
+        '<div class="menu-check">' + (completed[c.key] ? '✓' : '') + '</div>';
+      list.appendChild(btn);
+    });
+    // Sandbox row (always present)
+    const sandbox = document.createElement('button');
+    sandbox.className = 'menu-item menu-sandbox';
+    sandbox.dataset.task = 'sandbox';
+    sandbox.innerHTML =
+      '<div class="menu-icon">' +
+        '<div class="phone-shape landscape"></div>' +
+      '</div>' +
+      '<div class="menu-title">Free explore</div>' +
+      '<div class="menu-check"></div>';
+    list.appendChild(sandbox);
   }
 
-  // ─── FLOW ──────────────────────────────────────────────
-  function begin() {
-    order = shuffle(CONDITIONS);
-    currentIdx = 0;
-    nextCondition();
+  function showMenu() {
+    currentTask = null;
+    document.body.classList.remove('task-landscape', 'task-portrait', 'sandbox-mode');
+    renderMenu();
+    showScreen('menu');
   }
 
-  function nextCondition() {
-    if (currentIdx >= order.length) { finishAll(); return; }
-    updateProgress();
-    const c = order[currentIdx];
-    // Drive UI rotation based on this condition's required orientation
-    document.body.classList.remove('task-landscape', 'task-portrait');
+  function resetProgress() {
+    for (const k in completed) completed[k] = false;
+    renderMenu();
+  }
+
+  // ─── TASK FLOW ─────────────────────────────────────────
+  function startCondition(key) {
+    const c = CONDITIONS.find(x => x.key === key);
+    if (!c) return;
+    currentTask = c;
+
+    document.body.classList.remove('task-landscape', 'task-portrait', 'sandbox-mode');
     if (c.orient) document.body.classList.add('task-' + c.orient);
+
     document.getElementById('ins-icon').innerHTML =
       '<div class="phone-shape ' + c.orient + ' ' + c.iconClass + '"></div>';
     document.getElementById('ins-title').textContent = c.title;
     document.getElementById('ins-desc').textContent = c.desc;
     document.getElementById('ovl-instruction').textContent = c.shortInstruction;
+
+    const previewItems = c.options
+      .filter(opt => opt.key !== 'nothing')
+      .map(opt => '<li>' + opt.text + '</li>')
+      .join('');
+    document.getElementById('ins-preview').innerHTML =
+      '<p>While you do, watch what the pattern does. After, you\'ll be asked whether it:</p>' +
+      '<ul>' + previewItems + '</ul>';
+
+    // Fresh response-screen state per condition entry from menu.
+    // Preserved across back-to-stimulus within the same task entry.
+    const txt = document.getElementById('resp-other');
+    txt.value = '';
+    txt.disabled = false;
+    const subBtn = document.getElementById('submit-other');
+    subBtn.disabled = true;
+    subBtn.classList.remove('selected');
+
     showScreen('instruction');
   }
 
   let exposureTimer = null;
 
-  async function startTask() {
+  async function startTask(isReview) {
     showScreen(null);
     document.body.classList.add('running');
     resize();
     running = true;
 
     const btn = document.querySelector('.done-btn');
-    btn.classList.remove('just-enabled');  // reset between conditions
-    if (minSeconds > 0) {
+    btn.classList.remove('just-enabled');
+    if (minSeconds > 0 && !isReview) {
       btn.disabled = true;
       btn.textContent = minSeconds + 's';
       const startedAt = Date.now();
@@ -616,7 +805,8 @@
     if (exposureTimer) { clearInterval(exposureTimer); exposureTimer = null; }
     running = false;
     document.body.classList.remove('running');
-    const c = order[currentIdx];
+    if (!currentTask) { showMenu(); return; }
+    const c = currentTask;
     document.getElementById('resp-title').innerHTML = c.question;
     const wrap = document.getElementById('resp-choices');
     wrap.innerHTML = '';
@@ -627,23 +817,17 @@
       btn.dataset.response = opt.key;
       wrap.appendChild(btn);
     });
-    // reset text input + Submit button state for this condition's response screen
-    const txt = document.getElementById('resp-other');
-    txt.value = '';
-    txt.disabled = false;
-    const subBtn = document.getElementById('submit-other');
-    subBtn.disabled = true;
-    subBtn.classList.remove('selected');
     showScreen('response');
   }
+
+  function backToStimulus() { startTask(true); }
 
   let submitting = false;
 
   function submit(responseKey, otherText) {
-    if (submitting) return;        // ignore re-clicks
+    if (submitting) return;
     submitting = true;
 
-    // Visual feedback + lock all inputs immediately
     document.querySelectorAll('.choice').forEach(b => {
       if (b.dataset.response === responseKey) b.classList.add('selected');
       b.disabled = true;
@@ -654,7 +838,7 @@
     subBtn.disabled = true;
     txtIn.disabled = true;
 
-    const c = order[currentIdx];
+    const c = currentTask;
     const payload = {
       session: sessionId,
       ts: new Date().toISOString(),
@@ -663,7 +847,6 @@
       text: otherText || '',
     };
 
-    // Fire and forget — no await, keepalive so request survives the screen change
     if (SCRIPT_URL && SCRIPT_URL.indexOf('PASTE_YOUR') < 0) {
       try {
         fetch(SCRIPT_URL, {
@@ -678,36 +861,55 @@
       console.warn('No SCRIPT_URL set — response not sent:', payload);
     }
 
-    // Brief feedback delay so the user sees the selected state, then advance
     setTimeout(() => {
       submitting = false;
-      currentIdx++;
-      nextCondition();
-    }, 200);
+      completed[c.key] = true;
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
+      showMenu();
+    }, 250);
   }
 
-  function finishAll() {
+  function returnMenuFromInstruction() {
+    showMenu();
+  }
+
+  // ─── SANDBOX ───────────────────────────────────────────
+  async function startSandbox() {
+    currentTask = null;
+    document.body.classList.remove('task-landscape', 'task-portrait');
+    document.body.classList.add('sandbox-mode', 'running');
+    showScreen(null);
+    resize();
+    running = true;
+    try {
+      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+    } catch (e) {}
+    requestAnimationFrame(loop);
+  }
+
+  function exitSandbox() {
+    running = false;
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    currentIdx = -1;
-    document.body.classList.remove('task-landscape', 'task-portrait');
-    updateProgress();
-    showScreen('thanks');
-  }
-
-  function restart() {
-    showScreen('intro');
-    currentIdx = -1;
-    document.body.classList.remove('task-landscape', 'task-portrait');
-    updateProgress();
+    document.body.classList.remove('sandbox-mode', 'running');
+    showMenu();
   }
 
   // ─── EVENTS ────────────────────────────────────────────
   document.addEventListener('click', e => {
     const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'begin')            begin();
-    else if (action === 'start-task')  startTask();
-    else if (action === 'finish-task') finishTask();
-    else if (action === 'restart')     restart();
+    if (action === 'start-task')            startTask(false);
+    else if (action === 'finish-task')      finishTask();
+    else if (action === 'back-to-stimulus') backToStimulus();
+    else if (action === 'return-menu')      showMenu();
+    else if (action === 'exit-sandbox')     exitSandbox();
+    else if (action === 'reset-progress')   resetProgress();
+
+    const menuItem = e.target.closest('.menu-item');
+    if (menuItem) {
+      const key = menuItem.dataset.task;
+      if (key === 'sandbox') startSandbox();
+      else if (CONDITIONS.some(c => c.key === key)) startCondition(key);
+    }
 
     const choice = e.target.closest('.choice');
     if (choice) submit(choice.dataset.response);
@@ -718,7 +920,6 @@
     }
   });
 
-  // enable Submit button only when text input has content
   document.getElementById('resp-other').addEventListener('input', e => {
     document.getElementById('submit-other').disabled = !e.target.value.trim();
   });
@@ -735,6 +936,17 @@
     if (running) resize();
   });
 
+  // ─── FPS SLIDER (sandbox only) ─────────────────────────
+  const fpsSlider = document.getElementById('fps-slider');
+  const fpsVal = document.getElementById('fps-val');
+  fpsSlider.value = targetFPS;
+  fpsVal.textContent = targetFPS;
+  fpsSlider.addEventListener('input', e => {
+    const v = Math.max(1, parseInt(e.target.value) || 1);
+    targetFPS = v;
+    fpsVal.textContent = v;
+  });
+
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   document.addEventListener('visibilitychange', async () => {
@@ -743,7 +955,9 @@
     }
   });
 
+  // Initial render
   resize();
+  renderMenu();
 })();
 </script>
 </body>
