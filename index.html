@@ -214,18 +214,29 @@
     font-weight: 700;
     text-align: center;
   }
-  .menu-reset {
-    background: transparent;
-    border: none;
-    color: #888;
-    font-family: inherit;
-    font-size: 13px;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 4px;
-    margin-top: 4px;
+  #operator-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
   }
-  .menu-reset:active { color: #000; }
+  .op-new {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 12px 30px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .op-new:active { background: #333; }
+  .op-count {
+    font-size: 12px;
+    color: #888;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* ─── SANDBOX-MODE CONTROLS ─────────────────────────── */
   #fps-control {
@@ -503,7 +514,7 @@
     <h1>Portal illusion</h1>
     <p class="menu-intro">Tap a motion to try it. Tap again to redo. <em>Free explore</em> shows the noise with no task.</p>
     <div class="menu-list" id="menu-list"></div>
-    <button class="menu-reset" data-action="reset-progress">Reset progress</button>
+    <div id="operator-bar"></div>
   </div>
 </div>
 
@@ -567,6 +578,12 @@
   const density = Math.max(0, Math.min(1, parseFloat(params.get('p')) || 0.5));
   const minSeconds = Math.max(0, parseInt(params.get('min') ?? '5'));
 
+  // Operator mode: tablet loads ...?op=OPERATOR_KEY to unlock the
+  // "New participant" control. The QR code points to the plain URL,
+  // so phone scanners never see it. Change the key freely.
+  const OPERATOR_KEY = 'shimojo-demo';
+  const isOperator = params.get('op') === OPERATOR_KEY;
+
   // ─── CONDITIONS ─────────────────────────────────────────
   const CONDITIONS = [
     {
@@ -627,12 +644,28 @@
     },
   ];
 
+  // Operator/tablet override: the demo tablet is fixed in landscape, so the
+  // vertical task should NOT rotate the UI to portrait. Phone (participant)
+  // mode keeps portrait, since phone users can physically rotate their device.
+  if (isOperator) {
+    const v = CONDITIONS.find(c => c.key === 'vertical');
+    if (v) {
+      v.orient = 'landscape';
+      v.desc = 'Move it slowly up and down.';
+    }
+  }
+
   // ─── STATE ──────────────────────────────────────────────
   const completed = { horizontal: false, vertical: false, rotation: false, depth: false };
   let currentTask = null;
-  const sessionId = (window.crypto && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+  function makeSessionId() {
+    return (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+  let sessionId = makeSessionId();
+  let participantNum = 1;
 
   // ─── NOISE ──────────────────────────────────────────────
   const canvas = document.getElementById('c');
@@ -716,16 +749,28 @@
     list.appendChild(sandbox);
   }
 
+  function renderOperatorBar() {
+    const bar = document.getElementById('operator-bar');
+    if (!isOperator) { bar.innerHTML = ''; return; }
+    bar.innerHTML =
+      '<button class="op-new" data-action="new-participant">New participant</button>' +
+      '<div class="op-count">Participant ' + participantNum + '</div>';
+  }
+
   function showMenu() {
     currentTask = null;
     document.body.classList.remove('task-landscape', 'task-portrait', 'sandbox-mode');
     renderMenu();
+    renderOperatorBar();
     showScreen('menu');
   }
 
-  function resetProgress() {
+  function newParticipant() {
+    sessionId = makeSessionId();
+    participantNum++;
     for (const k in completed) completed[k] = false;
     renderMenu();
+    renderOperatorBar();
   }
 
   // ─── TASK FLOW ─────────────────────────────────────────
@@ -902,7 +947,7 @@
     else if (action === 'back-to-stimulus') backToStimulus();
     else if (action === 'return-menu')      showMenu();
     else if (action === 'exit-sandbox')     exitSandbox();
-    else if (action === 'reset-progress')   resetProgress();
+    else if (action === 'new-participant')  newParticipant();
 
     const menuItem = e.target.closest('.menu-item');
     if (menuItem) {
@@ -958,6 +1003,7 @@
   // Initial render
   resize();
   renderMenu();
+  renderOperatorBar();
 })();
 </script>
 </body>
